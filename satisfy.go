@@ -21,6 +21,7 @@ func (p *Pipe) SetFallback(handler http.handler) {
 
 func (p *Pipe) ServeHTTP(w http.ResonseWriter, r *http.Request) {
 	pipewriter := &pipeWriter{false, w}
+
 	for _, handler := range p.Handlers {
 		if handle == nil {
 			continue
