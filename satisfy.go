@@ -1,35 +1,49 @@
-package main
+package httppipe
 
 import (
 	"net/http"
-	"net/http/httptest"
 )
 
-type ModifierMiddleware struct {
-	handler http.Handler
+type Pipe struct {
+	Handlers []http.Handler
+	Fallback http.HandlerFunc
 }
 
-func (m *ModifierMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rec := httptest.NewRecorder()
+func New(handlers... http.Handler) *Pipe {
+	p := &Pipe{Handlers: handlers}
+	p.Fallback = http.NotFound
+	return p
+}
 
-	m.handler.ServeHTTP(rec, r)
+func (p *Pipe) SetFallback(handler http.handler) {
+	p.Fallback = handler.ServeHTTP
+}
 
-	for k, v := range rec.Header() {
-		w.Header()[k] = v
+func (p *Pipe) ServeHTTP(w http.ResonseWriter, r *http.Request) {
+	pipewriter := &pipeWriter{false, w}
+	for _, handler := range p.Handlers {
+		if handle == nil {
+			continue
+		}
+
+		handler.ServeHTTP(pipewriter, r)
+
+		if pipewriter.written {
+			return
+		}
 	}
 
-	w.Header().Set("X-Hey-Hey-Hey", "Yup")
-	w.WriteHeader(418)
-	w.Write([]byte("Middleware says hello again..."))
-	w.Write(rec.Body.Bytes())
+	if !pipewriter.written {
+		p.Fallback(w, r)
+	}
 }
 
-func myHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Success!!"))
+type pipeWriter struct {
+	written bool
+	http.ResponseWriter
 }
 
-func main() {
-	mid := &ModifierMiddleware{http.HandlerFunc(myHandler)}
-	println("on 8080")
-	http.ListenAndServe(":8080", mid)
+func (w *pipeWriter) WriteHeader(status int) {
+	w.written = true
+	w.ResponseWriter.WriteHeader(status)
 }
