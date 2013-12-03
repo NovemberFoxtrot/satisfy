@@ -4,18 +4,13 @@ import (
 	"net/http"
 )
 
-func SingleHost(handler http.Handler, allowedHost string) http.Handler {
-	ourFunc := func(w http.ResponseWriter, r *http.Request) {
-		host := r.Host
+type AppendMiddleware struct {
+	handler http.Handler
+}
 
-		if host == allowedHost {
-			handler.ServeHTTP(w, r)
-		} else {
-			w.WriteHeader(403)
-		}
-	}
-
-	return http.HandlerFunc(ourFunc)
+func (a *AppendMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.handler.ServeHTTP(w, r)
+	w.Write([]byte("<!-- Middleware says hey! -->"))
 }
 
 func myHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,9 +18,9 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	single := SingleHost(http.HandlerFunc(myHandler), "localhost:8080")
+	mid := &AppendMiddleware{http.HandlerFunc(myHandler)}
 
-	println("Listening on port 8080")
+	println("on 8080")
 
-	http.ListenAndServe(":8080", single)
+	http.ListenAndServe(":8080", mid)
 }
