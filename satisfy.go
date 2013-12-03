@@ -30,8 +30,6 @@ func myHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mid := &ModifierMiddleware{http.HandlerFunc(myHandler)}
-
 	println("on 8080")
-
 	http.ListenAndServe(":8080", mid)
 }
